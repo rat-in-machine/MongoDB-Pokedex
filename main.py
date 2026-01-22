@@ -2,7 +2,6 @@ import os
 import streamlit as st
 
 from dotenv import load_dotenv
-from dataclasses import asdict
 
 from classes.database.conector_bd import ConexionBD
 from classes.pokemon import * 
@@ -10,6 +9,39 @@ from classes.pokemon import *
 # ------------------------------------- #
 # --- Carga de variables de entorno --- #
 # ------------------------------------- #
+
+import streamlit as st
+
+
+def crear_base_de_datos():
+    st.subheader("Crear base de datos y colección")
+
+    nombre_bd = st.text_input(
+        "Nombre de la base de datos",
+        placeholder="Ej: pokedex_db"
+    )
+
+    nombre_coleccion = st.text_input(
+        "Nombre de la colección",
+        placeholder="Ej: Pokemon"
+    )
+
+    if st.button("Crear base de datos"):
+        if not nombre_bd or not nombre_coleccion:
+            st.error("Debes indicar el nombre de la base de datos y la colección")
+            return
+
+        try:
+            # Llamada a tu lógica real
+            conexion.crear_bd_y_coleccion(nombre_bd, nombre_coleccion)
+
+            st.success(
+                f"Base de datos '{nombre_bd}' y colección '{nombre_coleccion}' creadas correctamente"
+            )
+
+        except Exception as e:
+            st.error(f"Error creando la base de datos: {e}")
+
 
 def eliminar_ataque():
     """
@@ -154,7 +186,9 @@ if  not url or not db_name:
 if not user or not password:
     user = password = ""
 
-pokemon_dao = PokemonDAO(ConexionBD(url, user, password, db_name))
+conexion = ConexionBD(url, user, password, db_name)
+pokemon_dao = PokemonDAO(conexion=conexion)
+
 if not pokemon_dao:
     raise Exception("MongoDB no ha sido instanciado.")
 else:
@@ -170,6 +204,7 @@ st.title("Interfaz Pokédex MongoDB")
 menu = st.sidebar.selectbox(
     "Acción",
     [
+        "Crear base de datos",
         "Insertar Pokémon",
         "Buscar Pokémon",
         "Actualizar nivel",
@@ -181,7 +216,8 @@ menu = st.sidebar.selectbox(
 
 if menu == "Insertar Pokémon":
     insertar_pokemon()
-
+elif menu == "Crear base de datos":
+    crear_base_de_datos()
 elif menu == "Buscar Pokémon":
     buscar_pokemon()
 
