@@ -83,7 +83,7 @@ class PokemonDAO:
         """
         pokes = []
         
-        resultados = self.conexion.buscar(self.coleccion, filtro)
+        resultados = self.conexion.buscar("Pokemon", self.coleccion, filtro)
         
         for poke in resultados:
             

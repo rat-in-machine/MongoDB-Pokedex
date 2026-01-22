@@ -17,6 +17,8 @@ class ConexionBD:
         self.client = MongoClient(uri)
         self.db = self.client[self.db_name]
 
+    def insertar_json_coleccion(self, nombre_bd, ):
+        pass
     
     def crear_bd_y_coleccion(self, nombre_bd : str, nombre_coleccion : str, datos : Optional[List[dict]] = None ):
         try:
@@ -54,8 +56,9 @@ class ConexionBD:
             raise RuntimeError(f"Error insertando datos: {e}")
 
     # -- Funcional -- #
-    def buscar(self, coleccion: str, filtro: dict):
-        return list(self.db[coleccion].find(filtro))
+    def buscar(self, database : str, coleccion: str, filtro: dict):
+        db = self.client[database]
+        return list(db[coleccion].find(filtro))
     
     # -- Funcional -- #
     def actualizar(self, coleccion: str, filtro: dict, nuevos_valores: dict):

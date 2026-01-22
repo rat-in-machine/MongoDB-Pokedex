@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+import json
 
 from dotenv import load_dotenv
 
@@ -9,9 +10,6 @@ from classes.pokemon import *
 # ------------------------------------- #
 # --- Carga de variables de entorno --- #
 # ------------------------------------- #
-
-import streamlit as st
-
 
 def crear_base_de_datos():
     st.subheader("Crear base de datos y colección")
@@ -41,6 +39,123 @@ def crear_base_de_datos():
 
         except Exception as e:
             st.error(f"Error creando la base de datos: {e}")
+
+def buscar_datos():
+    st.subheader("Buscar datos en la base de datos")
+
+    # Selección de base de datos
+    database = st.text_input(
+        "Nombre de la base de datos",
+        placeholder="Ej: pokedex_db"
+    )
+
+    coleccion = st.text_input(
+        "Nombre de la colección",
+        placeholder="Ej: Pokemon"
+    )
+
+    filtro_str = st.text_area(
+        "Filtro de búsqueda (JSON)",
+        placeholder='Ej: {"nombre": "Pikachu"}'
+    )
+
+    if st.button("Buscar"):
+        if not database or not coleccion:
+            st.error("Debes indicar la base de datos y la colección")
+            return
+
+        try:
+            # Si no se escribe nada, usamos filtro vacío
+            filtro = json.loads(filtro_str) if filtro_str.strip() else {}
+
+        except json.JSONDecodeError:
+            st.error("El filtro no es un JSON válido")
+            return
+
+        try:
+            resultados = conexion.buscar(database, coleccion, filtro)
+
+            if not resultados:
+                st.warning("No se encontraron resultados")
+                return
+
+            st.success(f"Resultados encontrados: {len(resultados)}")
+            st.json(resultados)
+
+        except Exception as e:
+            st.error(f"Error realizando la búsqueda: {e}")
+
+def insertar_desde_json():
+    st.subheader("Insertar datos desde JSON")
+
+    nombre_bd = st.text_input(
+        "Nombre de la base de datos",
+        placeholder="Ej: pokedex_db"
+    )
+
+    nombre_coleccion = st.text_input(
+        "Nombre de la colección",
+        placeholder="Ej: Pokemon"
+    )
+
+    json_input = st.text_area(
+        "JSON a insertar",
+        placeholder='Ej:\n{\n  "nombre": "Pikachu",\n  "nivel": 5\n}\n\nO una lista de documentos'
+    )
+
+    if st.button("Insertar datos"):
+        if not nombre_bd or not nombre_coleccion or not json_input:
+            st.error("Debes completar todos los campos")
+            return
+
+        try:
+            datos = json.loads(json_input)
+
+            db = conexion.client[nombre_bd]
+            coleccion = db[nombre_coleccion]
+
+            if isinstance(datos, list):
+                coleccion.insert_many(datos)
+            elif isinstance(datos, dict):
+                coleccion.insert_one(datos)
+            else:
+                st.error("El JSON debe ser un objeto o una lista de objetos")
+                return
+
+            st.success("Datos insertados correctamente")
+
+        except json.JSONDecodeError:
+            st.error("El JSON no es válido")
+        except Exception as e:
+            st.error(f"Error insertando datos: {e}")
+
+def eliminar_base_de_datos():
+    st.subheader("Eliminar base de datos")
+
+    nombre_bd = st.text_input(
+        "Nombre de la base de datos a eliminar",
+        placeholder="Ej: pokedex_db"
+    )
+
+    confirmacion = st.checkbox(
+        "Entiendo que esta acción es irreversible"
+    )
+
+    if st.button("Eliminar base de datos"):
+        if not nombre_bd:
+            st.error("Debes indicar el nombre de la base de datos")
+            return
+
+        if not confirmacion:
+            st.warning("Debes confirmar que entiendes las consecuencias")
+            return
+
+        try:
+            conexion.client.drop_database(nombre_bd)
+            st.success(f"Base de datos '{nombre_bd}' eliminada correctamente")
+
+        except Exception as e:
+            st.error(f"Error eliminando la base de datos: {e}")
 
 
 def eliminar_ataque():
@@ -205,6 +320,9 @@ menu = st.sidebar.selectbox(
     "Acción",
     [
         "Crear base de datos",
+        "Eliminar base de datos",
+        "Buscar datos",
+        "Insertar JSON",
         "Insertar Pokémon",
         "Buscar Pokémon",
         "Actualizar nivel",
@@ -216,8 +334,18 @@ menu = st.sidebar.selectbox(
 
 if menu == "Insertar Pokémon":
     insertar_pokemon()
+
 elif menu == "Crear base de datos":
     crear_base_de_datos()
+elif menu == "Buscar datos":
+    buscar_datos()
+    
+elif menu == "Insertar JSON":
+    insertar_desde_json()
+    
+elif menu == "Eliminar base de datos":
+    eliminar_base_de_datos()
+    
 elif menu == "Buscar Pokémon":
     buscar_pokemon()
 
